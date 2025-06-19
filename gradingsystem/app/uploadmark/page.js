@@ -1,68 +1,85 @@
 "use client"
 import React, { useRef, useState } from 'react'
 import Papa from 'papaparse';
-
+import axios from 'axios';
+import { AiOutlineCloudUpload } from "react-icons/ai";
 const page = () => {
   const [students, setStudents] = useState([]);
   const [fileName, setFileName] = useState("Not selected");
   const [exam,setExam] = useState("Not selected")
   const exams = ["Cat1","Cat2","Cat3","Not selected"]
-
-  const getFormatedData = (data) =>{
-    data.map((student) => {
-        const examName = student["Exam"]
-        const examSet =student["Exam set"]
-        const rollNo = student["Roll No"]
-        const name = student["Name"]
-
-        const totalMarks = parseFloat(student["Total Marks"])
-        const grade = student["Grade"]
-        const rank = student["Rank"]
-
-        const correctAnswers = parseInt(student["Correct Answers"])
-        const incorrectAnswers = parseInt(student["Incorrect Answers"])
-        const notAttempted = parseInt(student["Not attempted"])
-
-        const subjectScores = {
-          subject1 : parseFloat(student["Subject 1"]),
-          subject2 : parseFloat(student["Subject 2"]),
-          subject3 : parseFloat(student["Subject 3"]),
-          subject4 : parseFloat(student["Subject 4"])
-        }
-        
-        let answers = []
-        for(let i=1; i<=90 ; i++){
-          const questionNumber = i;
-          const correctOption = student[`Q ${i} Key`];
-          const selectedOption = student[`Q ${i} Options`];
-          const marks = parseInt(student[`Q ${i} Marks`]);
-          const dataFormat = {
-            questionNumber , correctOption , selectedOption
-          }
-          answers.push(dataFormat)
-        }
-        const formatedData = {
-          examName : examName,
-          examSet : examSet,
-          rollNo : rollNo,
-          name : name,
-
-          totalMarks : totalMarks,
-          grade : grade,
-          rank : rank,
-
-          correctAnswers : correctAnswers,
-          incorrectAnswers : incorrectAnswers,
-          notAttempted : notAttempted,
-
-          subjectScores :subjectScores,
-          answers : answers,
-          createdAt : new Date()
-        }
-        
-        console.log("Formated Data",formatedData)
+  const [studentsArray,setStudentsArray] = useState([])
+  const handleUpload = async() => {
+    const payload = {
+      "students" : studentsArray
+    }
+     console.log(studentsArray)
+    await axios.post("http://localhost:3001/api/upload",payload,{
+      headers : {"Content-Type" : "application/json"}
     })
+    .then(()=>{console.log("connected")})
+    .catch((err)=>console.log("err",err))
   }
+  const getFormatedData = (data) => {
+  const newStudents = data.map((student) => {
+    const examName = student["Exam"];
+    const examSet = student["Exam set"];
+    const rollNo = student["Roll No"];
+    const name = student["Name"];
+
+    const totalMarks = parseFloat(student["Total Marks"]);
+    const grade = student["Grade"];
+    const rank = parseInt(student["Rank"]);
+
+    const correctAnswers = parseInt(student["Correct Answers"]);
+    const incorrectAnswers = parseInt(student["Incorrect Answers"]);
+    const notAttempted = parseInt(student["Not attempted"]);
+
+    const subjectScores = {
+      subject1: parseFloat(student["Subject 1"]),
+      subject2: parseFloat(student["Subject 2"]),
+      subject3: parseFloat(student["Subject 3"]),
+      subject4: parseFloat(student["Subject 4"])
+    };
+
+    let answers = [];
+    for (let i = 1; i <= 90; i++) {
+      const questionNumber = i;
+      const correctOption = student[`Q ${i} Key`];
+      const selectedOption = student[`Q ${i} Options`];
+
+      answers.push({ questionNumber, correctOption, selectedOption });
+    }
+    const subjectRanks = {
+      subject1 : 23,
+      subject2 : 14,
+      subject3 : 5,
+      subject4 : 2
+    }
+    const formattedData = {
+      rollNo,
+      name,
+      exam: {
+        examName,
+        examSet,
+        totalMarks,
+        grade,
+        rank,
+        correctAnswers,
+        incorrectAnswers,
+        notAttempted,
+        subjectScores,
+        subjectRanks,
+        answers,
+      }
+    };
+
+    return formattedData;
+  });
+
+  setStudentsArray(newStudents);
+};
+
   
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
@@ -146,23 +163,20 @@ const page = () => {
   const handleChoose = () => {
         fileref.current.click();
   }
+  const HandleUploadExam = () =>{
+   
+  }
   return (
     <div className='max-w-7xl w-full mx-auto px-8 py-8'>
         <h1 className='text-xl'>
             Results Upload Page
         </h1>
          <div className='flex gap-2 items-center mt-4'>
-            <p>
-                Choose the Exam
-            </p>
-            <select onChange={handleSelect} value={exam} className='border-[1px] border-black rounded-lg px-4 py-1 hover:bg-gray-50 hover:cursor-pointer'>
-                {exams.map((exam,index) => (
-                    <option key={index}  value={exam}>
-                    {exam}
-                    </option>
-                ))}
-                
-            </select>
+           {
+            !studentsArray.length && (<p className='flex items-center'>
+             <AiOutlineCloudUpload className='text-2xl mr-2 text-blue-500' /> Upload a file to proceed
+            </p>)
+           }
         </div>
         <div className='flex gap-2 items-center mt-4'>
             <p>
@@ -183,15 +197,14 @@ const page = () => {
         )
        }    
       {students.length > 0 && (
-        <table className='w-full' border="1"  cellPadding="8" style={{ marginTop: 20 }}>
+        <table className='w-full rounded-md border-[1px] border-black' border="1"  cellPadding="8" style={{ marginTop: 20 }}>
           <thead>
             <tr className='border-[1px] border-black'>
-              <th className='border-[1px] border-black'>Roll No</th>
-              <th className='border-[1px] border-black'>Exam</th>
-              <th className='border-[1px] border-black'>Name</th>
-              <th className='border-[1px] border-black'>Total Marks</th>
-              <th className='border-[1px] border-black'>Rank</th>
-              {/* <th>Actions</th> */}
+              <th className='border-[1px] border-black text-white bg-black'>Roll No</th>
+              <th className='border-[1px] border-black text-white bg-black'>Exam</th>
+              <th className='border-[1px] border-black text-white bg-black'>Name</th>
+              <th className='border-[1px] border-black text-white bg-black'>Total Marks</th>
+              <th className='border-[1px] border-black text-white bg-black'>Rank</th>
             </tr>
           </thead>
           <tbody>
@@ -202,19 +215,19 @@ const page = () => {
                 <td className='border-r-[1px] px-4'>{student['Name']}</td>
                 <td className='border-r-[1px] px-4'>{student['Total Marks']}</td>
                 <td className='border-r-[1px] px-4'>{student['Rank']}</td>
-                {/* <td>
-                  <button onClick={() => handlePrint(student)}>Print</button>
-                </td> */}
               </tr>
             ))}
           </tbody>
         </table>
       )}
       <div className='w-full flex justify-end py-2'>
-            
-             <button className='text-sm bg-black text-white px-4 py-1 rounded-md hover:bg-gray-800 hover:cursor-pointer'>
+             {
+              studentsArray.length > 0 && (
+                <button className='text-sm bg-black text-white px-4 py-1 rounded-md hover:bg-gray-800 hover:cursor-pointer' onClick={handleUpload}>
                 Upload
-            </button>
+                </button>
+              ) 
+             }
       </div>
     </div>
   );
